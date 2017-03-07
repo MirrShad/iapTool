@@ -66,18 +66,17 @@ class CIapDev(object):
             self._charDev.clearReadBuf()
             self._charDev.write(CIapDev.byteGoCmd)
             stmback = self._charDev.read(1)
-            if(stmback != CIapDev.ACK):
-                print("1get",stmback,", resend")
+            if(self.confirm_ack() != True):
                 continue
             cmd = self._addrApp
             cmd.append(self.getXor(self._addrApp))
             self._charDev.write(cmd)
             stmback = self._charDev.read(1)
-            if(stmback != CIapDev.ACK):
-                print("2get",stmback,", resend")
+            if(self.confirm_ack() != True):
                 continue
             else:
                 break
+            print('finished')
             sys.stdout.flush()
 
     def jumpToBootloader(self):
@@ -127,14 +126,26 @@ class CIapDev(object):
             print('boot param error:', val)
             return
         print('write bootparam')
-        self._charDev.write(CIapDev.byteWriteMemCmd)
-        cmd = self._addrBootParam
-        cmd.append(CIapDev.getXor(self._addrBootParam))
-        self._charDev.write(cmd)
-        cmd = bytearray(b'\x03') + val
-        cmd.append(CIapDev.getXor(cmd))
-        self._charDev.write(cmd)
-        self._charDev.clearReadBuf()
+        while(True):
+            self._charDev.clearReadBuf()
+            self._charDev.write(CIapDev.byteWriteMemCmd)
+            if(self.confirm_ack() != True):
+                continue
+
+            cmd = self._addrBootParam
+            cmd.append(CIapDev.getXor(self._addrBootParam))
+            self._charDev.write(cmd)
+            if(self.confirm_ack() != True):
+                continue
+
+            cmd = bytearray(b'\x03') + val
+            cmd.append(CIapDev.getXor(cmd))
+            self._charDev.write(cmd)
+            if(self.confirm_ack() != True):
+                continue
+            else:
+                break
+            
         
 
     def getBootLoaderVersion(self):
