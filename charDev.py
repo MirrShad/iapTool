@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 class CCharDev(object):
     __metaclass__ = ABCMeta
 
-    _dataQue = bytearray(b'')
+    _dataQue = []
     @abstractmethod
     def open(self):
         pass
@@ -27,7 +27,7 @@ class CCharDev(object):
         pass
 
     def clearReadBuf(self):
-        self._dataQue = b''
+        self._dataQue.clear()
     
 import socket
 class CUdpCharDev(CCharDev):
@@ -51,8 +51,8 @@ class CUdpCharDev(CCharDev):
         while(True):
             if(len(self._dataQue) >= bufflen):
                 ret = self._dataQue[0:bufflen]
-                self._dataQue[0:bufflen] = []
-                return ret
+                self._dataQue[0:bufflen] = b''
+                return bytearray(ret)
             if(count > self._readTimeout):
                 return b''
             count += 0.1
@@ -66,7 +66,7 @@ class CUdpCharDev(CCharDev):
         except socket.timeout:
             pass
         if(len(data) > 0):
-            self._dataQue += bytearray(data)
+            self._dataQue += data
         
     def setReadtimeout(self, nSec:"in seconds"):
         self._readTimeout = nSec

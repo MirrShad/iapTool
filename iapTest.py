@@ -15,9 +15,9 @@ def runReceiver():
         udpIapDev.run()
 
 def task():
-    udpIapDev.jumpToBootloader()
+    # udpIapDev.jumpToBootloader()
     # udpIapDev.writeBootParam(CIapDev.byteBootParam_APP)
-    # udpIapDev.jumpToApp()
+    udpIapDev.jumpToApp()
 
 t1 = threading.Thread(target = runReceiver)
 t1.setDaemon(True)

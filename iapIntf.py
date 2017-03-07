@@ -62,16 +62,29 @@ class CIapDev(object):
 
     def jumpToApp(self):
         print('jumping to application')
-        self._charDev.write(CIapDev.byteGoCmd)
-        cmd = self._addrApp
-        cmd.append(self.getXor(self._addrApp))
-        self._charDev.write(cmd)
-        time.sleep(0.2)
+        while(True):
+            self._charDev.clearReadBuf()
+            self._charDev.write(CIapDev.byteGoCmd)
+            stmback = self._charDev.read(1)
+            if(stmback != CIapDev.ACK):
+                print("1get",stmback,", resend")
+                continue
+            cmd = self._addrApp
+            cmd.append(self.getXor(self._addrApp))
+            self._charDev.write(cmd)
+            stmback = self._charDev.read(1)
+            if(stmback != CIapDev.ACK):
+                print("2get",stmback,", resend")
+                continue
+            else:
+                break
+            sys.stdout.flush()
 
     def jumpToBootloader(self):
         print('jump to bootloader')
         sys.stdout.flush()
         while True:
+            self._charDev.clearReadBuf()
             self._charDev.write(CIapDev.byteJump2BL)
             stmback = self._charDev.read(1)
             if(stmback == b''):
@@ -88,7 +101,6 @@ class CIapDev(object):
                 continue
             print('resend jump command')
             sys.stdout.flush()
-        self._charDev.clearReadBuf()
     
     def resetToBootloader(self):
         print('reset to bootloader')
