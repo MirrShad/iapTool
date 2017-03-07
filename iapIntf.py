@@ -65,13 +65,11 @@ class CIapDev(object):
         while(True):
             self._charDev.clearReadBuf()
             self._charDev.write(CIapDev.byteGoCmd)
-            stmback = self._charDev.read(1)
             if(self.confirm_ack() != True):
                 continue
             cmd = self._addrApp
             cmd.append(self.getXor(self._addrApp))
             self._charDev.write(cmd)
-            stmback = self._charDev.read(1)
             if(self.confirm_ack() != True):
                 continue
             else:
@@ -145,8 +143,6 @@ class CIapDev(object):
                 continue
             else:
                 break
-            
-        
 
     def getBootLoaderVersion(self):
         return 0x00
