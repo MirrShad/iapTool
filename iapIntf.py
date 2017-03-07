@@ -71,19 +71,23 @@ class CIapDev(object):
     def jumpToBootloader(self):
         print('jump to bootloader')
         sys.stdout.flush()
-        self._charDev.write(CIapDev.byteJump2BL)
         while True:
+            self._charDev.write(CIapDev.byteJump2BL)
             stmback = self._charDev.read(1)
-            if(stmback != b''):
+            if(stmback == b''):
+                print('timeout')
+                continue
+            elif(stmback == CIapDev.NACK):
+                print('already in bootloader')
                 break
-        if(stmback == CIapDev.NACK):
-            print('already in bootloader')
+            elif(stmback == b'\x07'):
+                print('from application')
+                break
+            else:
+                print('get byte', stmback)
+                continue
+            print('resend jump command')
             sys.stdout.flush()
-        elif(stmback == b'\x07'):
-            print('from application')
-            sys.stdout.flush()
-        else:
-            print('get byte', stmback)
         self._charDev.clearReadBuf()
     
     def resetToBootloader(self):

@@ -1,4 +1,5 @@
 import sys
+import time
 from abc import ABCMeta, abstractmethod
 
 class CCharDev(object):
@@ -34,6 +35,7 @@ class CUdpCharDev(CCharDev):
         print('init target IP:%s, port:%d'%(address[0], address[1]))
         self._address = address
         self._so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._readTimeout = 10
     
     def open(self):
         pass
@@ -44,10 +46,17 @@ class CUdpCharDev(CCharDev):
     def write(self, data):
         self._so.sendto(data, self._address)
 
-    def read(self, len):
-        ret = self._dataQue[0:len]
-        self._dataQue[0:len] = []
-        return ret
+    def read(self, bufflen):
+        count = 0
+        while(True):
+            if(len(self._dataQue) >= bufflen):
+                ret = self._dataQue[0:bufflen]
+                self._dataQue[0:bufflen] = []
+                return ret
+            if(count > self._readTimeout):
+                return b''
+            count += 0.1
+            time.sleep(0.1)
 
     def run(self):
         self._so.settimeout(0.1)
@@ -59,6 +68,9 @@ class CUdpCharDev(CCharDev):
         if(len(data) > 0):
             self._dataQue += bytearray(data)
         
+    def setReadtimeout(self, nSec:"in seconds"):
+        self._readTimeout = nSec
+
 # import time
 # testUdp = CUdpCharDev(('127.0.0.1',5003))
 # for i in range(0, 30):
