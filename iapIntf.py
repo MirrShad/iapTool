@@ -1,4 +1,5 @@
 import sys
+import os
 import time
 import charDev
 
@@ -23,9 +24,10 @@ class CIapDev(object):
 
     def __init__(self, charDevice, flashMap):
         self._charDev = charDevice
-        self._addrBootLoader = CIapDev.getBytesFromUint32(flashMap[0])
-        self._addrBootParam = CIapDev.getBytesFromUint32(flashMap[1])
-        self._addrApp = CIapDev.getBytesFromUint32(flashMap[2])
+        self._addrBootLoader = flashMap[0]
+        self._addrBootParam = flashMap[1]
+        self._addrApp = flashMap[2]
+        self._charDev.open()
 
     @staticmethod
     def getXor(val):
@@ -49,27 +51,41 @@ class CIapDev(object):
                 return False
         return True
 
-    def run(self):
-        self._charDev.run()
-
     def confirm_ack(self):
         stmback = self._charDev.read(1)
         if stmback != CIapDev.ACK:
             print('not ack:'+ str(stmback))
+            self._charDev.clearReadBuf()
             return False
         else:
             return True
 
+    def sendto_stm32(self, val):
+        self._charDev.ioctl("clearReadBuf")
+        self._charDev.write(val)
+
+    def resetBoard(self):
+        self._charDev.ioctl("usePrimeAddress")
+        while(True):
+            self.sendto_stm32(CIapDev.byteReset)
+            stmback = self._charDev.read(4)
+            if(stmback.__len__() == 0):
+                print("timeout")
+            elif(stmback[0] != 0x09):
+                print("error: get code ", stmback)
+            else:
+                break
+            sys.stdout.flush()
+
     def jumpToApp(self):
         print('jumping to application')
         while(True):
-            self._charDev.clearReadBuf()
-            self._charDev.write(CIapDev.byteGoCmd)
+            self.sendto_stm32(CIapDev.byteGoCmd)
             if(self.confirm_ack() != True):
                 continue
-            cmd = self._addrApp
-            cmd.append(self.getXor(self._addrApp))
-            self._charDev.write(cmd)
+            cmd = CIapDev.getBytesFromUint32(self._addrApp)
+            cmd.append(self.getXor(cmd))
+            self.sendto_stm32(cmd)
             if(self.confirm_ack() != True):
                 continue
             else:
@@ -80,18 +96,22 @@ class CIapDev(object):
     def jumpToBootloader(self):
         print('jump to bootloader')
         sys.stdout.flush()
+        self._charDev.ioctl("usePrimeAddress")
         while True:
-            self._charDev.clearReadBuf()
-            self._charDev.write(CIapDev.byteJump2BL)
+            self.sendto_stm32(CIapDev.byteJump2BL)
             stmback = self._charDev.read(1)
             if(stmback == b''):
                 print('timeout')
                 continue
             elif(stmback == CIapDev.NACK):
                 print('already in bootloader')
+                self._charDev.ioctl("useSeconAddress")
                 break
             elif(stmback == b'\x07'):
                 print('from application')
+                #0.2 second delay is important!
+                time.sleep(1)
+                self._charDev.ioctl("useSeconAddress")
                 break
             else:
                 print('get byte', stmback)
@@ -102,21 +122,35 @@ class CIapDev(object):
     def resetToBootloader(self):
         print('reset to bootloader')
         isInApp = True
-        self._charDev.write(CIapDev.byteReset)
+        self.sendto_stm32(CIapDev.byteReset)
         stmback = self._charDev.read(1)
         if(stmback == CIapDev.NACK[0]):
-            time.sleep(0.5)
-            self._charDev.clearReadBuf()
-            print('already in bootloader')
+            print("already in bootloader")
             isInApp = False
+        elif (stmback.__len__() > 0 and stmback[0] == CIapDev.byteReset[0]):
+            self._charDev.ioctl("clearReadBuf")
+            print("jump from app")
+        else:
+            print("don't know where it is, get", stmback)
+            os.system('pause')
+            quit()
+
+        self._charDev.ioctl('readTimeout', 0.001)
         while(isInApp):
             self._charDev.write(CIapDev.byteBoot2BL)
-            if(stmback == CIapDev.NACK[0]):
+            time.sleep(0.02)
+            stmback = self._charDev.read(1)
+            if(stmback.__len__() > 0 and CIapDev.NACK[0] == stmback[0]):
+                print('jump success')
                 time.sleep(0.1)
-                self._charDev.clearReadBuf()
+                self._charDev.ioctl("readTimeout", 1)
                 break
             else:
-                self._charDev.clearReadBuf()
+                # print('error: get', stmback)
+                pass
+        
+        self._charDev.ioctl("clearReadBuf")
+            
 
     def writeBootParam(self, val:'bootpram enum'):
         if(val != CIapDev.byteBootParam_BL 
@@ -125,29 +159,44 @@ class CIapDev(object):
             return
         print('write bootparam')
         while(True):
-            self._charDev.clearReadBuf()
-            self._charDev.write(CIapDev.byteWriteMemCmd)
+            self.sendto_stm32(CIapDev.byteWriteMemCmd)
             if(self.confirm_ack() != True):
                 continue
 
-            cmd = self._addrBootParam
-            cmd.append(CIapDev.getXor(self._addrBootParam))
-            self._charDev.write(cmd)
+            cmd = CIapDev.getBytesFromUint32(self._addrBootParam)
+            cmd.append(CIapDev.getXor(cmd))
+            self.sendto_stm32(cmd)
             if(self.confirm_ack() != True):
                 continue
 
             cmd = bytearray(b'\x03') + val
             cmd.append(CIapDev.getXor(cmd))
-            self._charDev.write(cmd)
+            self.sendto_stm32(cmd)
             if(self.confirm_ack() != True):
+                print('write failed, retry')
                 continue
             else:
                 break
 
     def getBootLoaderVersion(self):
+        self._charDev.ioctl('useSeconAddress')
+        print('read firmware version with second address')
+        while True:
+            self.sendto_stm32(CIapDev.byteGetFirmwareVersion)
+            stmback = self._charDev.read(5)
+            if(stmback == b''):
+                print('read timeout, maybe port unmatch, switch to primeAddress')
+                self._charDev.ioctl('usePrimeAddress')
+                continue
+            elif(stmback[0] != CIapDev.ACK[0]):
+                print('not ack', stmback)
+                continue
+            else:
+                return stmback[1]
+        
         return 0x00
 
-    def loadBin(self, filename, address):
+    def loadBin(self, filename):
         SEND_DATA_LEN = 256
         tail = filename[-4:]
         if tail != ".bin":
@@ -158,7 +207,7 @@ class CIapDev(object):
         i = 0
         length = len(data)
         while i < length:
-            nowDownloadAddress = address + i
+            nowDownloadAddress = self._addrApp + i
             print("write address 0x%X" % nowDownloadAddress)
             sys.stdout.flush()
             j = i + SEND_DATA_LEN
@@ -170,17 +219,17 @@ class CIapDev(object):
             slipArray.insert(0,slipLen - 1)
             slipArray.append(CIapDev.getXor(slipArray))
             # send head
-            self._charDev.write(CIapDev.byteWriteMemCmd)
+            self.sendto_stm32(CIapDev.byteWriteMemCmd)
             if self.confirm_ack() != True:
                 continue
             #send address
             byteAddress = CIapDev.getBytesFromUint32(nowDownloadAddress)
             byteAddress.append(CIapDev.getXor(byteAddress))
-            self._charDev.write(byteAddress)
+            self.sendto_stm32(byteAddress)
             if self.confirm_ack() != True:
                 continue
             #send data
-            self._charDev.write(slipArray)
+            self.sendto_stm32(slipArray)
             if self.confirm_ack() != True:
                 continue
             i = j

@@ -1,5 +1,6 @@
 import sys
 import time
+import os
 from abc import ABCMeta, abstractmethod
 
 class CCharDev(object):
@@ -23,7 +24,7 @@ class CCharDev(object):
         pass
 
     @abstractmethod
-    def run(self):
+    def ioctl(self, cmd, arg):
         pass
 
     def clearReadBuf(self):
@@ -31,11 +32,16 @@ class CCharDev(object):
     
 import socket
 class CUdpCharDev(CCharDev):
-    def __init__(self, address = ('192.168.1.4',5003)):
-        print('init target IP:%s, port:%d'%(address[0], address[1]))
-        self._address = address
+    def __init__(self, primeAddress = ('192.168.192.4',5003), seconAddress = ('192.168.192.4',19204)):
+        #primeAddress: ip+port for command jump to bootloader
+        self._primeAddress = primeAddress
+        #address: ip+port for IAP operation
+        self._seconAddress = seconAddress
+        #address: abstructed ip+port 
+        self._address = seconAddress
         self._so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._readTimeout = 10
+        print('init target IP:%s, port:%d'%(self._address[0], self._address[1]))
+        self._so.settimeout(1)
     
     def open(self):
         pass
@@ -47,33 +53,189 @@ class CUdpCharDev(CCharDev):
         self._so.sendto(data, self._address)
 
     def read(self, bufflen):
-        count = 0
         while(True):
             if(len(self._dataQue) >= bufflen):
                 ret = self._dataQue[0:bufflen]
                 self._dataQue[0:bufflen] = b''
                 return bytearray(ret)
-            if(count > self._readTimeout):
-                return b''
-            count += 0.1
-            time.sleep(0.1)
+            else:
+                try:
+                    self._dataQue += self._so.recvfrom(1024)[0]
+                except socket.timeout:
+                    return bytearray(b'')
 
-    def run(self):
-        self._so.settimeout(0.1)
-        data = b''
-        try:
-            data = self._so.recvfrom(100)[0]
-        except socket.timeout:
-            pass
-        if(len(data) > 0):
-            self._dataQue += data
+    def ioctl(self, cmd, arg = 0):
+        if(cmd == "usePrimeAddress"):
+            self._address = self._primeAddress
+        elif(cmd == "useSeconAddress"):
+            self._address = self._seconAddress
+        elif (cmd == "readTimeout"):
+            self._so.settimeout(arg)
+        elif (cmd == "clearReadBuf"):
+            self._dataQue.clear()
+        else:
+            print("unknow param!")
+            os.system("pause")
+
+import ctypes
+from ctypes import *
+class CCanCharDev(CCharDev):
+    class _VCI_CAN_OBJ(Structure):
+        _fields_ = [("ID", c_uint32),
+                    ("TimeStamp", c_uint32),
+                    ("TimeFlag", c_byte),
+                    ("SendType", c_byte),
+                    ("RemoteFlag", c_byte),
+                    ("ExternFlag", c_byte),
+                    ("DataLen", c_byte),
+                    ("Data", c_byte * 8),
+                    ("Reserved", c_byte * 3)]
+
+    _BUFF_LEN = 512
+    _VCI_CAN_OBJ_ARRAY = _VCI_CAN_OBJ*_BUFF_LEN
+
+    _DEV_TYPE = 4
+    _DEV_IDX = 0
+    _dll = ctypes.windll.LoadLibrary('ControlCAN.dll')
+    def __init__(self, primeAddress = (0x5004, 0x5005), seconAddress = (0x5004, 0x5005), USB_CAN_CH = 0):
+        #primeAddress: upstreamID + downstreamID for command jump to bootloader
+        self._primeAddress = primeAddress
+        #address: upstreamID + downstreamID for IAP operation
+        self._seconAddress = seconAddress
+        #address: abstructed upstreamID + downstreamID 
+        self._upId = seconAddress[0]
+        self._downId = seconAddress[1]
+
+        self._DEV_CH = USB_CAN_CH
+        self._rxbuff = CCanCharDev._VCI_CAN_OBJ_ARRAY()
+        self._readTimeout = 1
         
-    def setReadtimeout(self, nSec:"in seconds"):
-        self._readTimeout = nSec
+    
+    def open(self):
+        canInitArrayType = c_byte*16
+        canInitArray = canInitArrayType()
+        canInitArray[0] = 0x08
+        canInitArray[1] = 0x00
+        canInitArray[2] = 0x00
+        canInitArray[3] = 0x80
 
-# import time
-# testUdp = CUdpCharDev(('127.0.0.1',5003))
-# for i in range(0, 30):
-#     time.sleep(1)
-#     testUdp.run()
-#     print(testUdp.read(3))
+        canInitArray[4] = 0xff
+        canInitArray[5] = 0xff
+        canInitArray[6] = 0xff
+        canInitArray[7] = 0xff
+
+        canInitArray[8] = 0x00
+        canInitArray[9] = 0x00
+        canInitArray[10] = 0x00
+        canInitArray[11] = 0x00
+
+        canInitArray[12] = 0x00
+        canInitArray[13] = 0x01
+        canInitArray[14] = 0x1c
+        canInitArray[15] = 0x00
+        #open device
+        if(CCanCharDev._dll.VCI_OpenDevice(CCanCharDev._DEV_TYPE, CCanCharDev._DEV_IDX, self._DEV_CH) == 1):
+            print('UsbCanTool Open Success')
+        else:
+            print('UsbCanTool Open falid')
+            print("傻X,是不是CAN卡又没关？")
+            sys.stdout.flush()
+            os.system('pause')
+            quit()
+
+        #init device
+        if(CCanCharDev._dll.VCI_InitCAN(CCanCharDev._DEV_TYPE, CCanCharDev._DEV_IDX, self._DEV_CH, byref(canInitArray)) == 1):
+            print('device init ok!')
+        else:
+            print('device init failed...')
+            sys.stdout.flush()
+            os.system('pause')
+            quit()
+
+        #start channel
+        if(CCanCharDev._dll.VCI_StartCAN(CCanCharDev._DEV_TYPE, CCanCharDev._DEV_IDX, self._DEV_CH) == 1):
+            print('Channel%d start ok!'%(self._DEV_CH + 1))
+        else:
+            print('Channel%d start failed...'%(self._DEV_CH + 1))
+            sys.stdout.flush()
+            os.system('pause')
+            quit()
+        
+    def close(self):
+        CCanCharDev._dll.VCI_CloseDevice(CCanCharDev._DEV_TYPE, 0)
+        print('UsbCanTool Close')
+        sys.stdout.flush()
+
+    def read(self, bufflen):
+        timecount = 0
+        while(True):
+            if(timecount > self._readTimeout * 100):
+                print("read timeout")
+                return b''
+                
+            if(len(self._dataQue) >= bufflen):
+                ret = self._dataQue[0:bufflen]
+                self._dataQue[0:bufflen] = b''
+                return bytearray(ret)
+            else:
+                frame_num = CCanCharDev._dll.VCI_Receive(CCanCharDev._DEV_TYPE,  
+                    CCanCharDev._DEV_IDX, 
+                    self._DEV_CH, 
+                    self._rxbuff,
+                    CCanCharDev._BUFF_LEN, 0)
+                if(0 == frame_num):
+                    time.sleep(0.01)
+                    timecount = timecount + 1
+                    continue
+                for i in range(0, frame_num):
+                    if(self._rxbuff[i].ID != self._upId):
+                        continue
+                    for j in range(0, self._rxbuff[i].DataLen):
+                        self._dataQue.append(self._rxbuff[i].Data[j])
+
+        
+    def write(self, charflow):
+        count = 0
+        send_frame = CCanCharDev._VCI_CAN_OBJ()
+        send_frame.ID = self._downId
+        send_frame.SendType = 1
+        send_frame.RemoteFlag = 0
+        send_frame.ExternFlag = 1
+        send_frame.DataLen = 8
+        for byte in charflow:
+            send_frame.Data[count] = byte
+            count = count + 1
+            if (count == 8):
+                count = 0
+                send_frame.DataLen = 8
+                CCanCharDev._dll.VCI_Transmit(CCanCharDev._DEV_TYPE, 
+                    CCanCharDev._DEV_IDX, 
+                    self._DEV_CH, 
+                    byref(send_frame),1)
+        if(count > 0):
+            send_frame.DataLen = count
+            CCanCharDev._dll.VCI_Transmit(CCanCharDev._DEV_TYPE, 
+                    CCanCharDev._DEV_IDX, 
+                    self._DEV_CH, 
+                    byref(send_frame),1)
+    
+    def ioctl(self, cmd, arg = 0):
+        if(cmd == "usePrimeAddress"):
+            self._upId = self._primeAddress[0]
+            self._downId = self._primeAddress[1]
+        elif(cmd == "useSeconAddress"):
+            self._upId = self._seconAddress[0]
+            self._downId = self._seconAddress[1]
+        elif (cmd == "readTimeout"):
+            self._readTimeout = arg
+        elif (cmd == "clearReadBuf"):
+            CCanCharDev._dll.VCI_ClearBuffer(CCanCharDev._DEV_TYPE, 
+                CCanCharDev._DEV_IDX, 
+                self._DEV_CH)
+            self._dataQue.clear()
+        else:
+            print("unknow param!")
+            os.system("pause")
+
+
+        
