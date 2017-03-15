@@ -77,13 +77,15 @@ class CIapDev(object):
                 break
             sys.stdout.flush()
 
-    def jumpToApp(self):
+    def jumpToAddress(self, address = 0):
         print('jumping to application')
+        if(0 == address):
+            address = self._addrApp
         while(True):
             self.sendto_stm32(CIapDev.byteGoCmd)
             if(self.confirm_ack() != True):
                 continue
-            cmd = CIapDev.getBytesFromUint32(self._addrApp)
+            cmd = CIapDev.getBytesFromUint32(address)
             cmd.append(self.getXor(cmd))
             self.sendto_stm32(cmd)
             if(self.confirm_ack() != True):
@@ -92,6 +94,10 @@ class CIapDev(object):
                 break
             print('finished')
             sys.stdout.flush()
+    
+    def jumpToApp(self):
+        self.jumpToAddress(self._addrApp)
+
 
     def jumpToBootloader(self):
         print('jump to bootloader')
@@ -102,7 +108,8 @@ class CIapDev(object):
             stmback = self._charDev.read(1)
             if(stmback == b''):
                 print('timeout')
-                continue
+                break
+                # continue
             elif(stmback == CIapDev.NACK):
                 print('already in bootloader')
                 self._charDev.ioctl("useSeconAddress")
@@ -124,7 +131,7 @@ class CIapDev(object):
         isInApp = True
         self.sendto_stm32(CIapDev.byteReset)
         stmback = self._charDev.read(1)
-        if(stmback == CIapDev.NACK[0]):
+        if(stmback.__len__() > 0 and stmback[0] == CIapDev.NACK[0]):
             print("already in bootloader")
             isInApp = False
         elif (stmback.__len__() > 0 and stmback[0] == CIapDev.byteReset[0]):
@@ -196,7 +203,9 @@ class CIapDev(object):
         
         return 0x00
 
-    def loadBin(self, filename):
+    def loadBin(self, filename, address = 0):
+        if(0 == address):
+            address = self._addrApp
         SEND_DATA_LEN = 256
         tail = filename[-4:]
         if tail != ".bin":
@@ -207,7 +216,7 @@ class CIapDev(object):
         i = 0
         length = len(data)
         while i < length:
-            nowDownloadAddress = self._addrApp + i
+            nowDownloadAddress = address + i
             print("write address 0x%X" % nowDownloadAddress)
             sys.stdout.flush()
             j = i + SEND_DATA_LEN
@@ -234,8 +243,10 @@ class CIapDev(object):
                 continue
             i = j
 
-    def readBin(self, filename, address):
+    def readBin(self, filename, address = 0):
         # get flasher file, read only, binary
+        if(0 == address):
+            address = self._addrApp
         READ_DATA_LEN = 256
         f = open(filename,'wb')
         i = 0
@@ -251,25 +262,25 @@ class CIapDev(object):
             slipLen = j - i
 
             # send head
-            self._charDev.write(CIapDev.byteReadMemCmd)
+            self.sendto_stm32(CIapDev.byteReadMemCmd)
             if self.confirm_ack() != True:
                 continue
 
             #send address
             byteAddress = CIapDev.getBytesFromUint32(nowReadAddress)
             byteAddress.append(CIapDev.getXor(byteAddress))
-            self._charDev.write(byteAddress)
+            self.sendto_stm32(byteAddress)
             if self.confirm_ack() != True:
                 continue
 
             #send datalength
             double_datalen = bytearray([slipLen-1, slipLen-1])
-            self._charDev.write(double_datalen)
+            self.sendto_stm32(double_datalen)
             if self.confirm_ack() != True:
                 continue
 
             #read data
-            stmback = self._charDev.read(1)
+            stmback = self._charDev.read(256)
             checkbyte = self._charDev.read(1)
             if self.getXor(bytearray(stmback)) == ord(checkbyte):
                 if self.isAllBytesFF(stmback):
