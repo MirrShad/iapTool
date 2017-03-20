@@ -53,7 +53,7 @@ class CIapDev(object):
 
     def confirm_ack(self):
         stmback = self._charDev.read(1)
-        if stmback != CIapDev.ACK:
+        if stmback.__len__() == 0 or stmback[0] != CIapDev.ACK[0]:
             print('not ack:'+ str(stmback))
             self._charDev.clearReadBuf()
             return False
@@ -78,9 +78,9 @@ class CIapDev(object):
             sys.stdout.flush()
 
     def jumpToAddress(self, address = 0):
-        print('jumping to application')
         if(0 == address):
             address = self._addrApp
+        print('jump to address: 0x%X'%address)
         while(True):
             self.sendto_stm32(CIapDev.byteGoCmd)
             if(self.confirm_ack() != True):
@@ -142,6 +142,8 @@ class CIapDev(object):
             os.system('pause')
             quit()
 
+        prevTimeout = 1
+        self._charDev.ioctl('getReadTimeout', prevTimeout)
         self._charDev.ioctl('readTimeout', 0.001)
         while(isInApp):
             self._charDev.write(CIapDev.byteBoot2BL)
@@ -157,6 +159,7 @@ class CIapDev(object):
                 pass
         
         self._charDev.ioctl("clearReadBuf")
+        self._charDev.ioctl('readTimeout', prevTimeout)
             
 
     def writeBootParam(self, val:'bootpram enum'):
@@ -282,7 +285,7 @@ class CIapDev(object):
             #read data
             stmback = self._charDev.read(256)
             checkbyte = self._charDev.read(1)
-            if self.getXor(bytearray(stmback)) == ord(checkbyte):
+            if self.getXor(bytearray(stmback)) == checkbyte[0]:
                 if self.isAllBytesFF(stmback):
                     print("all byte 0xFF, read finished")
                     f.close()
@@ -291,8 +294,9 @@ class CIapDev(object):
                     f.write(stmback)
             else:
                 print("check sum failed")
+                print(stmback)
                 print("calc = 0x%X" %self.getXor(bytearray(stmback)))
-                print("get = 0x%X" % ord(checkbyte))
+                print("get = 0x%X" % checkbyte[0])
                 continue
 
             i = j

@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 class CCharDev(object):
     __metaclass__ = ABCMeta
 
-    _dataQue = []
+    _dataQue = bytearray(b'')
     @abstractmethod
     def open(self):
         pass
@@ -57,12 +57,12 @@ class CUdpCharDev(CCharDev):
             if(len(self._dataQue) >= bufflen):
                 ret = self._dataQue[0:bufflen]
                 self._dataQue[0:bufflen] = b''
-                return bytearray(ret)
+                return ret
             else:
                 try:
                     self._dataQue += self._so.recvfrom(1024)[0]
                 except socket.timeout:
-                    return bytearray(b'')
+                    return b''
 
     def ioctl(self, cmd, arg = 0):
         if(cmd == "usePrimeAddress"):
@@ -71,11 +71,14 @@ class CUdpCharDev(CCharDev):
             self._address = self._seconAddress
         elif (cmd == "readTimeout"):
             self._so.settimeout(arg)
+        elif (cmd == "getReadTimeout"):
+            arg = self._so.gettimeout()
         elif (cmd == "clearReadBuf"):
             self._dataQue.clear()
         else:
             print("unknow param!")
             os.system("pause")
+            quit()
 
 import ctypes
 from ctypes import *
@@ -88,7 +91,7 @@ class CCanCharDev(CCharDev):
                     ("RemoteFlag", c_byte),
                     ("ExternFlag", c_byte),
                     ("DataLen", c_byte),
-                    ("Data", c_byte * 8),
+                    ("Data", c_ubyte * 8),
                     ("Reserved", c_byte * 3)]
 
     _BUFF_LEN = 512
@@ -176,7 +179,7 @@ class CCanCharDev(CCharDev):
             if(len(self._dataQue) >= bufflen):
                 ret = self._dataQue[0:bufflen]
                 self._dataQue[0:bufflen] = b''
-                return bytearray(ret)
+                return ret
             else:
                 frame_num = CCanCharDev._dll.VCI_Receive(CCanCharDev._DEV_TYPE,  
                     CCanCharDev._DEV_IDX, 
@@ -228,6 +231,8 @@ class CCanCharDev(CCharDev):
             self._downId = self._seconAddress[1]
         elif (cmd == "readTimeout"):
             self._readTimeout = arg
+        elif (cmd == "getReadTimeout"):
+            arg = self._readTimeout
         elif (cmd == "clearReadBuf"):
             CCanCharDev._dll.VCI_ClearBuffer(CCanCharDev._DEV_TYPE, 
                 CCanCharDev._DEV_IDX, 
