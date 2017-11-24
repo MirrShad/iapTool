@@ -43,6 +43,8 @@ class CSeerSonicCharDev(CCharDev):
                 try:
                     self._dataQue += self._so.recvfrom(1024)[0]
                 except socket.timeout:
+                    print('readtimeout, expect %d bytes, get %d bytes' %
+                          (bufflen, len(self._dataQue)))
                     return b''
 
     def ioctl(self, cmd, arg=0):

@@ -185,7 +185,7 @@ class CIapDev(object):
                 print('write 0x%04X to addr 0x%04X success' % (val, address))
                 break
 
-    def readbin(self, filename, address):
+    def readbin(self, filename, address=0x08000000):
         # get flasher file, read only, binary
         if(0 == address):
             address = self._addrApp
@@ -231,10 +231,8 @@ class CIapDev(object):
                 else:
                     f.write(stmback)
             else:
-                print("check sum failed")
-                print(stmback)
-                print("calc = 0x%X" % self.getxor(bytearray(stmback)))
-                print("get = 0x%X" % checkbyte[0])
+                print("check sum failed, calc: 0x%X, get: 0x%X, data: %s" %
+                      (self.getxor(bytearray(stmback)), checkbyte[0], stmback))
                 continue
 
             i = j
