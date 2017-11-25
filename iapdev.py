@@ -60,6 +60,7 @@ class CIapDev(object):
             address = self._addrApp
         print('jump to address: 0x%X' % address)
         while(True):
+            time.sleep(0.3)
             self.forwardwrite(CIapDev.byteGoCmd)
             if(self.confirmack() is False):
                 continue
@@ -100,6 +101,38 @@ class CIapDev(object):
     @abstractmethod
     def forwardwrite(self, val):
         pass
+
+    def restorebootparam(self, blockaddr):
+        print('restoring boot param...')
+        powerupvarnum = self.readuint32(blockaddr + 4)
+        DEFAULT_SUIT_VAL_NUM = 2
+        suitvarnum = DEFAULT_SUIT_VAL_NUM
+        if powerupvarnum > 0xffff:
+            suitvarnum = DEFAULT_SUIT_VAL_NUM
+
+        xorresult = 0
+        for i in range(0, suitvarnum):
+            xorresult = xorresult ^ self.readuint32(blockaddr + 4 * i)
+
+        if xorresult != self.readuint32(blockaddr + 4 * suitvarnum):
+            print('power up field XOR mismatch')
+            suitvarnum = DEFAULT_SUIT_VAL_NUM
+
+        powerupval = []
+        if suitvarnum != DEFAULT_SUIT_VAL_NUM:
+            for i in range(0, suitvarnum):
+                powerupval += [self.readuint32(blockaddr + 4 * i)]
+        else:
+            powerupval = [0, 2]
+
+        powerupval[0] = 0xaaaa5555
+        xorresult = 0
+        for i in range(0, suitvarnum):
+            xorresult = xorresult ^ powerupval[i]
+            self.loaduint32(powerupval[i], blockaddr + 4 * i)
+
+        self.loaduint32(xorresult, blockaddr + 4 * suitvarnum)
+        print('restore boot parameters finished')
 
     def getbootloaderversion(self):
         self._chardev.ioctl('useSeconAddress')
@@ -185,6 +218,41 @@ class CIapDev(object):
                 print('write 0x%04X to addr 0x%04X success' % (val, address))
                 break
 
+    def readuint32(self, address):
+        while True:
+            # send head
+            self.forwardwrite(CIapDev.byteReadMemCmd)
+            if self.confirmack() is False:
+                continue
+
+            # send address
+            byteAddress = CIapDev.getbytesfromuint32(address)
+            byteAddress.append(CIapDev.getxor(byteAddress))
+            self.forwardwrite(byteAddress)
+            if self.confirmack() is False:
+                continue
+
+            # send datalength
+            double_datalen = bytearray([4 - 1, 4 - 1])
+            self.forwardwrite(double_datalen)
+            if self.confirmack() is False:
+                continue
+
+            # read data
+            stmback = self._chardev.read(4)
+            checkbyte = self._chardev.read(1)
+            if self.getxor(bytearray(stmback)) == checkbyte[0]:
+                val = 0
+                for i in range(0, 4):
+                    val = val << 8
+                    val = val + stmback[i]
+                print('get val 0x%08X' % val)
+                return val
+            else:
+                print("check sum failed, calc: 0x%X, get: 0x%X, data: %s" %
+                      (self.getxor(bytearray(stmback)), checkbyte[0], stmback))
+                continue
+
     def readbin(self, filename, address=0x08000000):
         # get flasher file, read only, binary
         if(0 == address):
@@ -192,7 +260,7 @@ class CIapDev(object):
         READ_DATA_LEN = 256
         f = open(filename, 'wb')
         i = 0
-        length = 80000
+        length = 800000
         while i < length:
             nowReadAddress = address + i
             print("read address 0x%X" % nowReadAddress)
@@ -221,7 +289,12 @@ class CIapDev(object):
                 continue
 
             # read data
-            stmback = self._chardev.read(256)
+            try:
+                stmback = self._chardev.read(256)
+            except KeyboardInterrupt:
+                f.close()
+                quit()
+
             checkbyte = self._chardev.read(1)
             if self.getxor(bytearray(stmback)) == checkbyte[0]:
                 if self.isallbytes0xff(stmback):
