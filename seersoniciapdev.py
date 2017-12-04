@@ -57,6 +57,23 @@ class CSeerSonicIapDev(CIapDev):
 
     def setforwardmode(self):
         print('set SeerDIO forward mode')
+
+        LAUNCH_SONIC_TASK_CMD = 6
+        while True:
+            cmd_bytes = struct.pack(
+                '<2I', self.SONICCMD_PACKHEAD, LAUNCH_SONIC_TASK_CMD)
+            self._chardev.write(cmd_bytes)
+            databack = self._chardev.read(8)
+            if databack is b'':
+                print('Lanch sonic modbus task timeout')
+                continue
+            elif databack == bytearray(cmd_bytes):
+                break
+            else:
+                print('Lanch sonic modbus task, get:')
+                print(databack)
+                continue
+
         SET_IAP_FLAG_CMD = 3
         while True:
             cmd_bytes = struct.pack(
