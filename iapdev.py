@@ -3,6 +3,7 @@ import os
 import time
 import chardev
 from abc import ABCMeta, abstractmethod
+import struct
 
 print('start')
 
@@ -105,10 +106,15 @@ class CIapDev(object):
     def restorebootparam(self, blockaddr):
         print('restoring boot param...')
         powerupvarnum = self.readuint32(blockaddr + 4)
+
         DEFAULT_SUIT_VAL_NUM = 2
         suitvarnum = DEFAULT_SUIT_VAL_NUM
         if powerupvarnum > 0xffff:
             suitvarnum = DEFAULT_SUIT_VAL_NUM
+        else:
+            suitvarnum = powerupvarnum
+
+        print('var num: %d' % suitvarnum)
 
         xorresult = 0
         for i in range(0, suitvarnum):
@@ -194,10 +200,9 @@ class CIapDev(object):
             i = j
 
     def loaduint32(self, val, address):
-        data = CIapDev.getbytesfromuint32(val)
+        data = bytearray(struct.pack('<I', val))
         data.insert(0, 3)
         data.append(CIapDev.getxor(data))
-        print(data)
         while True:
             # send head
             self.forwardwrite(CIapDev.byteWriteMemCmd)
@@ -242,11 +247,8 @@ class CIapDev(object):
             stmback = self._chardev.read(4)
             checkbyte = self._chardev.read(1)
             if self.getxor(bytearray(stmback)) == checkbyte[0]:
-                val = 0
-                for i in range(0, 4):
-                    val = val << 8
-                    val = val + stmback[i]
-                print('get val 0x%08X' % val)
+                (val,) = struct.unpack('<I', stmback)
+                print('read uint32 0x%08X' % val)
                 return val
             else:
                 print("check sum failed, calc: 0x%X, get: 0x%X, data: %s" %

@@ -15,7 +15,7 @@ try:
     F4K_ip = data['inet addr']
 
 except:
-    F4K_ip = '192.168.192.16'
+    F4K_ip = '192.168.192.4'
     # F4K_ip = '127.0.0.1'
 
 if(2 == len(sys.argv)):
@@ -38,11 +38,11 @@ udpIapDev = CF4KernelIapDev(chardev)
 # udpIapDev.resetBoard()
 # udpIapDev.setforwardmode()
 # udpIapDev.resettargetboard()
-# udpIapDev.settargetboardbootloader()
-# FWV = udpIapDev.getbootloaderversion()
-# print('firmware version V%X.%X' % (FWV >> 4, FWV & 0xF))
-# udpIapDev.loadbin(bin_file, APP_START_ADDR)
-udpIapDev.readbin('fw.sc.bin', BOOTPARAM_ADDR)
+udpIapDev.settargetboardbootloader()
+FWV = udpIapDev.getbootloaderversion()
+print('firmware version V%X.%X' % (FWV >> 4, FWV & 0xF))
+udpIapDev.loadbin(bin_file, APP_START_ADDR)
+# udpIapDev.readbin('fw.sc.bin', BOOTPARAM_ADDR)
 udpIapDev.restorebootparam(BOOTPARAM_ADDR)
 udpIapDev.jumpToAddress(APP_START_ADDR)
 udpIapDev.resetforwardmode()
