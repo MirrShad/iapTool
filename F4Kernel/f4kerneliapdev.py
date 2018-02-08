@@ -1,7 +1,11 @@
-from iapdev import *
-from chardev import *
+import sys
+sys.path.append('../')
+
+from iapdev.iapdev import CIapDev
+from chardev.chardev import CCharDev
 import struct
 import socket
+import time
 
 
 class CF4KernelIapDev(CIapDev):

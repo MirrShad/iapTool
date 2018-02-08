@@ -1,20 +1,17 @@
-from chardev import *
 import socket
-import time
-import struct
+import os
+from .chardev import CCharDev
 
 
-class CSeerSonicCharDev(CCharDev):
-    E_SET_IAP_FLAG = 0x03
-    E_RESET_IAP_FLAG = 0x04
+class UdpCharDev(CCharDev):
 
-    def __init__(self, primeAddress=('192.168.192.4', 5003), seconAddress=('192.168.192.4', 5000)):
+    def __init__(self, primeAddress, seconAddress):
         # primeAddress: ip+port for command jump to bootloader
         self._primeAddress = primeAddress
         # address: ip+port for IAP operation
         self._seconAddress = seconAddress
         # address: abstructed ip+port
-        self._address = seconAddress
+        self._address = self._seconAddress
         self._so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         print('init target IP:%s, port:%d' %
               (self._address[0], self._address[1]))

@@ -1,7 +1,11 @@
-from iapdev import *
-from chardev import *
+import sys
+sys.path.append('../')
+
+from chardev.chardev import *
+from iapdev.iapdev import *
 import struct
 import socket
+import time
 
 
 class CSeerSonicIapDev(CIapDev):
