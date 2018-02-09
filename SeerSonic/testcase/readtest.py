@@ -9,7 +9,6 @@ os.chdir(sys.path[0])
 from time import sleep
 from SeerSonic.seersoniciapdev import CSeerSonicIapDev
 from chardev.udpchardev import UdpCharDev
-# from iapdev import CIapDev
 
 try:
     with open('..\\User\\ipconfig.json', 'r') as f:

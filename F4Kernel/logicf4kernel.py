@@ -1,12 +1,12 @@
 import sys
+sys.path.append('../')
+
 import os
 import json
-os.chdir(sys.path[0])
 
 from time import sleep
-from f4kerneliapdev import CF4KernelIapDev
-from seersonicchardev import CSeerSonicCharDev
-from iapdev import CIapDev
+from chardev.udpchardev import UdpCharDev
+from F4Kernel.f4kerneliapdev import CF4KernelIapDev
 
 try:
     with open('..\\User\\ipconfig.json', 'r') as f:
@@ -32,17 +32,12 @@ else:
 BOOTLOADER_START_ADDR = 0x08000000
 BOOTPARAM_ADDR = 0x0800C000
 APP_START_ADDR = 0x08010000
-chardev = CSeerSonicCharDev((F4K_ip, 15003), (F4K_ip, 5000))
-# chardev = CSeerSonicCharDev(('127.0.0.1', 9999), ('127.0.0.1', 9999))
+chardev = UdpCharDev((F4K_ip, 15003), (F4K_ip, 5000))
 udpIapDev = CF4KernelIapDev(chardev)
-# udpIapDev.resetBoard()
-# udpIapDev.setforwardmode()
-# udpIapDev.resettargetboard()
 udpIapDev.settargetboardbootloader()
 FWV = udpIapDev.getbootloaderversion()
 print('firmware version V%X.%X' % (FWV >> 4, FWV & 0xF))
 udpIapDev.loadbin(bin_file, APP_START_ADDR)
-# udpIapDev.readbin('fw.sc.bin', BOOTPARAM_ADDR)
 udpIapDev.restorebootparam(BOOTPARAM_ADDR)
 udpIapDev.jumpToAddress(APP_START_ADDR)
 udpIapDev.resetforwardmode()

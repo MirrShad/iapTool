@@ -39,7 +39,7 @@ udpIapDev = CF4KernelIapDev(chardev)
 udpIapDev.settargetboardbootloader()
 FWV = udpIapDev.getbootloaderversion()
 print('firmware version V%X.%X' % (FWV >> 4, FWV & 0xF))
-udpIapDev.readbin('readback.bin')
+udpIapDev.readbin('readback.sc.bin', APP_START_ADDR)
 udpIapDev.restorebootparam(BOOTPARAM_ADDR)
 udpIapDev.jumpToAddress(APP_START_ADDR)
 
