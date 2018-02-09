@@ -311,3 +311,8 @@ class CIapDev(object):
                 continue
 
             i = j
+
+
+def test_isallbytes0xff():
+    assert CIapDev.isallbytes0xff(b'\xff'*50) is True
+    assert CIapDev.isallbytes0xff(b'\xfd') is False
