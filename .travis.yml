@@ -1,0 +1,13 @@
+# environment
+language: python
+
+# version
+python:
+  - 3.6
+
+script:
+  - npm run ci
+
+branches:
+  only
+    - develop
