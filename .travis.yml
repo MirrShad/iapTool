@@ -7,7 +7,3 @@ python:
 
 script:
   - pytest -v iapdev/iapdev.py
-
-branches:
-  only
-    - develop
