@@ -3,7 +3,7 @@ language: python
 
 # version
 python:
-  - 3.6
+  - "3.6"
 
 script:
   - echo '123123'
