@@ -6,8 +6,4 @@ python:
   - "3.6"
 
 script:
-  - echo '123123'
-
-branches:
-  only
-    - develop
+  - pytest -v iapdev/iapdev.py
