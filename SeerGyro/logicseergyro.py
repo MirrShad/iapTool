@@ -23,7 +23,7 @@ if(2 == len(sys.argv)):
     tail2 = bin_file[-7:-4]
     if tail2 != '.gy':
         print('not the firmware for seer controller, press enter to continue...')
-        input()
+        sleep(2)
         sys.exit(1)
 else:
     bin_file = '../Output/Project.bin'
