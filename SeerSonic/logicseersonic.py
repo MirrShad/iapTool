@@ -3,7 +3,7 @@ sys.path.append('../')
 
 import os
 import json
-os.chdir(sys.path[0])
+# os.chdir(sys.path[0])
 
 from time import sleep
 from SeerSonic.seersoniciapdev import CSeerSonicIapDev
