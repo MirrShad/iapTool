@@ -1,7 +1,9 @@
 import sys
-sys.path.append('../')
-
 import os
+
+parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parentdir)
+
 import json
 
 from time import sleep
