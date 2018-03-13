@@ -3,7 +3,7 @@ sys.path.append('../')
 
 import os
 import json
-os.chdir(sys.path[0])
+# os.chdir(sys.path[0])
 
 from time import sleep
 from SeerSonic.seersoniciapdev import CSeerSonicIapDev
@@ -24,8 +24,8 @@ if(2 == len(sys.argv)):
     tail2 = bin_file[-7:-4]
     if tail2 != '.ss':
         print('not the firmware for seer controller, press enter to continue...')
-        input()
-        sys.exit()
+        sleep(2)
+        sys.exit(1)
 else:
     bin_file = '../Output/Project.bin'
 
@@ -43,5 +43,6 @@ udpIapDev.loaduint32(0xaaaa5555, BOOTPARAM_ADDR)
 udpIapDev.jumpToAddress(APP_START_ADDR)
 udpIapDev.resetforwardmode()
 
-os.system('pause')
-sys.exit()
+sleep(1)
+# os.system('pause')
+sys.exit(0)

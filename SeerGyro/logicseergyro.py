@@ -23,8 +23,8 @@ if(2 == len(sys.argv)):
     tail2 = bin_file[-7:-4]
     if tail2 != '.gy':
         print('not the firmware for seer controller, press enter to continue...')
-        input()
-        sys.exit()
+        sleep(2)
+        sys.exit(1)
 else:
     bin_file = '../Output/Project.bin'
 
@@ -42,5 +42,6 @@ udpIapDev.restorebootparam(BOOTPARAM_ADDR)
 udpIapDev.jumpToAddress(APP_START_ADDR)
 udpIapDev.resetforwardmode()
 
-os.system('pause')
-sys.exit()
+sleep(1)
+# os.system('pause')
+sys.exit(0)
