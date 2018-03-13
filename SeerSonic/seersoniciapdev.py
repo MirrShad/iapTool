@@ -28,6 +28,7 @@ class CSeerSonicIapDev(CIapDev):
 
     def settargetboardbootloader(self):
         # 01 06 00 01 00 01
+        wb = whileBreaker(15)
         while True:
             set_iap_bytes = struct.pack('>2B2H',
                                         self.SONICMODBUS_SLAVE_ADDR,
@@ -46,6 +47,7 @@ class CSeerSonicIapDev(CIapDev):
                     dataque += byteback
             if len(dataque) == 0:
                 print('set target board IAP flag timeout')
+                wb()
                 continue
             elif dataque[0] is 0x1f:
                 print('already in bootloader')
@@ -63,6 +65,7 @@ class CSeerSonicIapDev(CIapDev):
         print('set SeerDIO forward mode')
 
         LAUNCH_SONIC_TASK_CMD = 6
+        wb = whileBreaker(16)
         while True:
             cmd_bytes = struct.pack(
                 '<2I', self.SONICCMD_PACKHEAD, LAUNCH_SONIC_TASK_CMD)
@@ -70,15 +73,18 @@ class CSeerSonicIapDev(CIapDev):
             databack = self._chardev.read(8)
             if databack is b'':
                 print('Lanch sonic modbus task timeout')
+                wb()
                 continue
             elif databack == bytearray(cmd_bytes):
                 break
             else:
                 print('Lanch sonic modbus task, get:')
                 print(databack)
+                wb()
                 continue
 
         SET_IAP_FLAG_CMD = 3
+        wb = whileBreaker(17)
         while True:
             cmd_bytes = struct.pack(
                 '<2I', self.SONICCMD_PACKHEAD, SET_IAP_FLAG_CMD)
@@ -86,17 +92,20 @@ class CSeerSonicIapDev(CIapDev):
             databack = self._chardev.read(8)
             if databack is b'':
                 print('set SeerDIO forward mode timeout')
+                wb()
                 continue
             elif databack == bytearray(cmd_bytes):
                 break
             else:
                 print('set forward mode faild, get:')
                 print(databack)
+                wb()
                 continue
 
     def resetforwardmode(self):
         print('reset SeerDIO forward mode')
         RESET_IAP_FLAG_CMD = 4
+        wb = whileBreaker(18)
         while True:
             cmd_bytes = struct.pack(
                 '<2I', self.SONICCMD_PACKHEAD, RESET_IAP_FLAG_CMD)
@@ -105,6 +114,7 @@ class CSeerSonicIapDev(CIapDev):
             databack = self._chardev.read(8)
             if databack is b'':
                 print('reset SeerDIO forward mode timeout')
+                wb()
                 continue
             elif databack == bytearray(cmd_bytes):
                 print('reset SeerDIO forward mode ok')
@@ -113,10 +123,12 @@ class CSeerSonicIapDev(CIapDev):
                 print('reset forward mode faild, get:')
                 print(databack)
                 time.sleep(0.5)
+                wb()
                 continue
 
     def resettargetboard(self):
         # 01 06 00 01 00 01
+        wb = whileBreaker(19)
         while True:
             print('try reset target board')
             reset_target_bytes = struct.pack('>2B2H',
@@ -137,6 +149,7 @@ class CSeerSonicIapDev(CIapDev):
                     dataque += byteback
             if len(dataque) == 0:
                 print('reset target board timeout')
+                wb()
                 continue
             elif dataque[0] is 0x1f:
                 print('board in bootloader')

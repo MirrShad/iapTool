@@ -31,6 +31,7 @@ class UdpCharDev(CCharDev):
         self._so.sendto(data, self._address)
 
     def read(self, bufflen):
+        # timeout is non-essential
         while(True):
             if(len(self._dataQue) >= bufflen):
                 ret = self._dataQue[0:bufflen]
@@ -58,6 +59,7 @@ class UdpCharDev(CCharDev):
             self.ioctl('getReadTimeout', prevTimeout)
             self._dataQue.clear()
             self._so.settimeout(0)
+            # TODO: need timeout break?
             while(True):
                 try:
                     self._so.recvfrom(1000)

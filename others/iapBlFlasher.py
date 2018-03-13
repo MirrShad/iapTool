@@ -22,7 +22,8 @@ udpIapDev.loadBin('readback.bin')
 udpIapDev.writeBootParam(CIapDev.byteBootParam_APP)
 udpIapDev.jumpToApp()
 
-sys.exit()
+sleep(1)
+sys.exit(0)
 
 
 

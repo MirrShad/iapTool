@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-
+import sys
 
 class CCharDev(object):
     __metaclass__ = ABCMeta
@@ -29,3 +29,18 @@ class CCharDev(object):
 
     def clearReadBuf(self):
         self._dataQue.clear()
+
+
+class whileBreaker(object):
+    
+    def __init__(self, code, timeout = 10):
+        self.__code = code
+        self.__timeout = timeout if timeout > 0 else 0
+        self.__count = 0
+
+    def __call__(self):
+        self.__count += 1
+        # print(self.__count)
+        if self.__count > self.__timeout:
+            print("process failed, exit %d" % self.__code)
+            sys.exit(self.__code)
