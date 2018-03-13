@@ -151,8 +151,9 @@ class CIapDev(object):
             self.forwardwrite(CIapDev.byteGetFirmwareVersion)
             stmback = self._chardev.read(5)
             if(stmback == b''):
-                print('read timeout, maybe port unmatch, switch to primeAddress')
-                self._chardev.ioctl('usePrimeAddress')
+                # print('read timeout, maybe port unmatch, switch to primeAddress')
+                # self._chardev.ioctl('usePrimeAddress')
+                print('read timeout')
                 wb()
                 continue
             elif(stmback[0] != CIapDev.ACK[0]):
