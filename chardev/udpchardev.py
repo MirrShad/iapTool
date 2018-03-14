@@ -48,7 +48,7 @@ class UdpCharDev(CCharDev):
                 except ConnectionResetError:
                     print('Connection was closed by remote host')
                     print('It\'s most likely that you use a SRC1100 firmware to flash SRC2000')
-                    sys.exit(1)
+                    sys.exit(20)
 
     def ioctl(self, cmd, arg=0):
         if(cmd == "usePrimeAddress"):
