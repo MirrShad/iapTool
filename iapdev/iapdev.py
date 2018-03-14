@@ -60,15 +60,18 @@ class CIapDev(object):
         if(0 == address):
             address = self._addrApp
         print('jump to address: 0x%X' % address)
+        wb = chardev.whileBreaker(5)
         while(True):
             time.sleep(0.3)
             self.forwardwrite(CIapDev.byteGoCmd)
             if(self.confirmack() is False):
+                wb()
                 continue
             cmd = CIapDev.getbytesfromuint32(address)
             cmd.append(self.getxor(cmd))
             self.forwardwrite(cmd)
             if(self.confirmack() is False):
+                wb()
                 continue
             else:
                 break
@@ -143,6 +146,7 @@ class CIapDev(object):
     def getbootloaderversion(self):
         self._chardev.ioctl('useSeconAddress')
         print('read firmware version with second address')
+        wb = chardev.whileBreaker(6)
         while True:
             self.forwardwrite(CIapDev.byteGetFirmwareVersion)
             stmback = self._chardev.read(5)
@@ -150,9 +154,11 @@ class CIapDev(object):
                 # print('read timeout, maybe port unmatch, switch to primeAddress')
                 # self._chardev.ioctl('usePrimeAddress')
                 print('read timeout')
+                wb()
                 continue
             elif(stmback[0] != CIapDev.ACK[0]):
                 print('not ack', stmback)
+                wb()
                 continue
             else:
                 return stmback[1]
@@ -172,6 +178,7 @@ class CIapDev(object):
         i = 0
         length = len(data)
         print('bin file length = %d' % length)
+        wb = chardev.whileBreaker(7, 50)
         while i < length:
             nowDownloadAddress = address + i
             print("write address 0x%X" % nowDownloadAddress)
@@ -187,16 +194,19 @@ class CIapDev(object):
             # send head
             self.forwardwrite(CIapDev.byteWriteMemCmd)
             if self.confirmack() is False:
+                wb()
                 continue
             # send address
             byteAddress = CIapDev.getbytesfromuint32(nowDownloadAddress)
             byteAddress.append(CIapDev.getxor(byteAddress))
             self.forwardwrite(byteAddress)
             if self.confirmack() is False:
+                wb()
                 continue
             # send data
             self.forwardwrite(slipArray)
             if self.confirmack() is False:
+                wb()
                 continue
             i = j
 
@@ -204,31 +214,37 @@ class CIapDev(object):
         data = bytearray(struct.pack('<I', val))
         data.insert(0, 3)
         data.append(CIapDev.getxor(data))
+        wb = chardev.whileBreaker(8)
         while True:
             # send head
             self.forwardwrite(CIapDev.byteWriteMemCmd)
             if self.confirmack() is False:
+                wb()
                 continue
             # send address
             byteAddress = CIapDev.getbytesfromuint32(address)
             byteAddress.append(CIapDev.getxor(byteAddress))
             self.forwardwrite(byteAddress)
             if self.confirmack() is False:
+                wb()
                 continue
             # send data
             self.forwardwrite(data)
             if self.confirmack() is False:
                 time.sleep(1)
+                wb()
                 continue
             else:
                 print('write 0x%04X to addr 0x%04X success' % (val, address))
                 break
 
     def readuint32(self, address):
+        wb = chardev.whileBrpeaker(9)
         while True:
             # send head
             self.forwardwrite(CIapDev.byteReadMemCmd)
             if self.confirmack() is False:
+                wb()
                 continue
 
             # send address
@@ -236,12 +252,14 @@ class CIapDev(object):
             byteAddress.append(CIapDev.getxor(byteAddress))
             self.forwardwrite(byteAddress)
             if self.confirmack() is False:
+                wb()
                 continue
 
             # send datalength
             double_datalen = bytearray([4 - 1, 4 - 1])
             self.forwardwrite(double_datalen)
             if self.confirmack() is False:
+                wb()
                 continue
 
             # read data
@@ -254,6 +272,7 @@ class CIapDev(object):
             else:
                 print("check sum failed, calc: 0x%X, get: 0x%X, data: %s" %
                       (self.getxor(bytearray(stmback)), checkbyte[0], stmback))
+                wb()
                 continue
 
     def readbin(self, filename, address=0x08000000):
@@ -264,6 +283,7 @@ class CIapDev(object):
         f = open(filename, 'wb')
         i = 0
         length = 800000
+        wb = char.whileBreaker(10,10)
         while i < length:
             nowReadAddress = address + i
             print("read address 0x%X" % nowReadAddress)
@@ -276,6 +296,7 @@ class CIapDev(object):
             # send head
             self.forwardwrite(CIapDev.byteReadMemCmd)
             if self.confirmack() is False:
+                wb()
                 continue
 
             # send address
@@ -283,12 +304,14 @@ class CIapDev(object):
             byteAddress.append(CIapDev.getxor(byteAddress))
             self.forwardwrite(byteAddress)
             if self.confirmack() is False:
+                wb()
                 continue
 
             # send datalength
             double_datalen = bytearray([slipLen - 1, slipLen - 1])
             self.forwardwrite(double_datalen)
             if self.confirmack() is False:
+                wb()
                 continue
 
             # read data
@@ -309,6 +332,7 @@ class CIapDev(object):
             else:
                 print("check sum failed, calc: 0x%X, get: 0x%X, data: %s" %
                       (self.getxor(bytearray(stmback)), checkbyte[0], stmback))
+                wb()
                 continue
 
             i = j

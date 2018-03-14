@@ -23,7 +23,7 @@ canIapDev.jumpToAddress(0x08000000)
 canIapDev.loadBin('readback_sub.bin')
 canIapDev.writeBootParam(CIapDev.byteBootParam_APP)
 canIapDev.jumpToApp()
-sys.exit()
+sys.exit(0)
 
 
 

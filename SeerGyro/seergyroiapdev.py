@@ -31,6 +31,7 @@ class CSeerGyroIapDev(CIapDev):
         ADD_TASK_CMD_HEAD = 0xA002
         GYRO_TASK_ID = 102
 
+        wb = whileBreaker(11,10)
         while True:
             cmd_bytes = struct.pack(
                 '<2I', ADD_TASK_CMD_HEAD, GYRO_TASK_ID)
@@ -38,6 +39,7 @@ class CSeerGyroIapDev(CIapDev):
             databack = self._chardev.read(4)
             if databack is b'':
                 print('Launch gyro task timeout')
+                wb()
                 continue
             elif databack == self.GYROIAP_NORMAL_REPLY:
                 break
@@ -48,6 +50,7 @@ class CSeerGyroIapDev(CIapDev):
 
         print('Gyro must be set to bootloader before set forward mode')
         SET_GYRO_JUMP_BOOTLOADER = 0x05
+        wb = whileBreaker(12)
         while True:
             cmd_bytes = struct.pack(
                 '<2I', self.GYROCMD_PACKHEAD, SET_GYRO_JUMP_BOOTLOADER)
@@ -55,6 +58,7 @@ class CSeerGyroIapDev(CIapDev):
             databack = self._chardev.read(4)
             if databack is b'':
                 print('set gyro to bootloader failed')
+                wb()
                 continue
             elif databack == self.GYROIAP_NORMAL_REPLY:
                 break
@@ -64,6 +68,7 @@ class CSeerGyroIapDev(CIapDev):
                 break
 
         SET_IAP_FLAG_CMD = 0x01
+        wb = whileBreaker(13)
         while True:
             cmd_bytes = struct.pack(
                 '<2I', self.GYROCMD_PACKHEAD, SET_IAP_FLAG_CMD)
@@ -71,6 +76,7 @@ class CSeerGyroIapDev(CIapDev):
             databack = self._chardev.read(4)
             if databack is b'':
                 print('set SeerDIO forward mode timeout')
+                wb()
                 continue
             elif databack == self.GYROIAP_NORMAL_REPLY:
                 break
@@ -82,6 +88,7 @@ class CSeerGyroIapDev(CIapDev):
     def resetforwardmode(self):
         print('reset SeerDIO IMU forward mode')
         RESET_IAP_FLAG_CMD = 0x02
+        wb = whileBreaker(14)
         while True:
             cmd_bytes = struct.pack(
                 '<2I', self.GYROCMD_PACKHEAD, RESET_IAP_FLAG_CMD)
@@ -90,6 +97,7 @@ class CSeerGyroIapDev(CIapDev):
             databack = self._chardev.read(4)
             if databack is b'':
                 print('reset SeerDIO forward mode timeout')
+                wb()
                 continue
             elif databack == self.GYROIAP_NORMAL_REPLY:
                 break
