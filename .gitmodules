@@ -1,0 +1,3 @@
+[submodule "iapToolTest"]
+	path = iapToolTest
+	url = https://github.com/XiaoxingChen/iapToolTest
