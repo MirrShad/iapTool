@@ -19,9 +19,9 @@ if('Windows' == platform.system()):
     os.system(scriptpath + 'build.bat')
     subprocess.Popen([scriptpath + 'test.bat'], creationflags=subprocess.CREATE_NEW_CONSOLE)
 elif('Linux' == platform.system()):
-    scriptpath.replace('\\', '/')
+    scriptpath = scriptpath.replace('\\', '/')
     os.system(scriptpath + 'build.sh')
-    subprocess.Popen([scriptpath + 'test.sh'])
+    subprocess.Popen(['sh', scriptpath + 'test.sh'])
 else:
     print('Unknow platfrom: ' + platform.system())
     sys.exit(-1)
