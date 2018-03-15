@@ -1,5 +1,9 @@
 import sys
 import os
+
+parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parentdir)
+
 import time
 import chardev
 from abc import ABCMeta, abstractmethod
@@ -239,7 +243,7 @@ class CIapDev(object):
                 break
 
     def readuint32(self, address):
-        wb = chardev.whileBrpeaker(9)
+        wb = chardev.whileBreaker(9)
         while True:
             # send head
             self.forwardwrite(CIapDev.byteReadMemCmd)

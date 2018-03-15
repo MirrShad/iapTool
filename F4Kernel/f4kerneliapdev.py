@@ -99,14 +99,27 @@ class CF4KernelIapDev(CIapDev):
 
     def checktargetboardinbootloader(self):
         self._chardev.ioctl("useSeconAddress")
-        self._chardev.write(b'\xff' * 10)
+        self._chardev.ioctl("clearReadBuf")
+        self._chardev.write(b'\x00' * 20)
+        prevTimeout = [0.1]
+        self._chardev.ioctl('getReadTimeout', prevTimeout)
+        self._chardev.ioctl('readTimeout', 0.01)
         try:
             stmback = self._chardev.read(4)
-        except WindowsError:
-            return
-
-        if stmback == b'\x1f' * 4:
-            print('Already in bootloader!')
-            return True
-        else:
+            self._chardev.ioctl('readTimeout', prevTimeout[0])
+        except ConnectionResetError:
+            print('Remote port closed, may not in bootloader')
             return False
+            
+
+        for b in stmback:
+            if b != CIapDev.ACK[0] and b != CIapDev.NACK[0]:
+                print('stmback = ' + str(stmback) + 'Not in bootloader!')
+                return False
+        
+        if 0 == len(stmback):
+            print('No repley, not in bootloader')
+            return False
+
+        print('Already in bootloader!')
+        return True

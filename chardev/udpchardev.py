@@ -19,6 +19,7 @@ class UdpCharDev(CCharDev):
         self._so.settimeout(1)
         try:
             self._so.sendto(b'', self._primeAddress)
+            self._so.recvfrom(1000)
         except:
             pass
 
@@ -45,10 +46,10 @@ class UdpCharDev(CCharDev):
                     print('readtimeout, expect %d bytes, get %d bytes' %
                           (bufflen, len(self._dataQue)))
                     return b''
-                except ConnectionResetError:
-                    print('Connection was closed by remote host')
-                    print('It\'s most likely that you use a SRC1100 firmware to flash SRC2000')
-                    sys.exit(20)
+                # except ConnectionResetError:
+                #     print('Connection was closed by remote host')
+                #     print('It\'s most likely that you use a SRC1100 firmware to flash SRC2000')
+                #     sys.exit(20)
 
     def ioctl(self, cmd, arg=0):
         if(cmd == "usePrimeAddress"):
