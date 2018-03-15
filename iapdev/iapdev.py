@@ -287,7 +287,7 @@ class CIapDev(object):
         f = open(filename, 'wb')
         i = 0
         length = 800000
-        wb = char.whileBreaker(10,10)
+        wb = chardev.whileBreaker(10,10)
         while i < length:
             nowReadAddress = address + i
             print("read address 0x%X" % nowReadAddress)

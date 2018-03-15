@@ -8,9 +8,25 @@ import json
 from time import sleep
 from chardev.udpchardev import UdpCharDev
 from F4Kernel.f4kerneliapdev import CF4KernelIapDev
+import subprocess
+import platform
 
 F4K_ip = '127.0.0.1'
 IAP_UDP_PORT = 5000
+
+scriptpath = '..\\..\\iapToolTest\\f4kernaltest_boost\\'
+if('Windows' == platform.system()):
+    os.system(scriptpath + 'build.bat')
+    subprocess.Popen([scriptpath + 'test.bat'], creationflags=subprocess.CREATE_NEW_CONSOLE)
+elif('Linux' == platform.system()):
+    scriptpath.replace('\\', '/')
+    os.system(scriptpath + 'build.sh')
+    subprocess.Popen([scriptpath + 'test.sh'])
+else:
+    print('Unknow platfrom: ' + platform.system())
+    sys.exit(-1)
+
+sleep(1)
 
 if(2 == len(sys.argv)):
     bin_file = sys.argv[1]
@@ -42,8 +58,9 @@ FWV = udpIapDev.getbootloaderversion()
 print('firmware version V%X.%X' % (FWV >> 4, FWV & 0xF))
 udpIapDev.loadbin(bin_file, APP_START_ADDR)
 udpIapDev.restorebootparam(BOOTPARAM_ADDR)
+udpIapDev.readbin('readback.bin', APP_START_ADDR)
 udpIapDev.jumpToAddress(APP_START_ADDR)
 udpIapDev.resetforwardmode()
 
-os.system('pause')
+print('Test finished...')
 sys.exit()
