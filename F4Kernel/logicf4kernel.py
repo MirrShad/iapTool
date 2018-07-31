@@ -55,13 +55,10 @@ BOOTPARAM_ADDR = 0x080FC000
 APP_START_ADDR = 0x08020000
 chardev = UdpCharDev((F4K_ip, 15003), (F4K_ip, IAP_UDP_PORT))
 udpIapDev = CF4KernelIapDev(chardev)
-print("sssssssssssssssssssssssssssss")
 udpIapDev.settargetboardbootloader()
-print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 FWV = udpIapDev.getbootloaderversion()
 print('firmware version V%X.%X' % (FWV >> 4, FWV & 0xF))
 udpIapDev.loadbin(bin_file, APP_START_ADDR)
-print("bbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 udpIapDev.restorebootparam(BOOTPARAM_ADDR)
 udpIapDev.jumpToAddress(APP_START_ADDR)
 udpIapDev.resetforwardmode()
