@@ -17,7 +17,8 @@ class CF4KernelIapDev(CIapDev):
 		pass
 
 	def settargetboardbootloader(self):
-
+		
+		print("set Target Board Boot")
 		if self.checktargetboardinbootloader():
 			return
 
@@ -105,12 +106,14 @@ class CF4KernelIapDev(CIapDev):
 		self._chardev.write(data)
 
 	def checktargetboardinbootloader(self):
+		print("check target board 1")
 		self._chardev.ioctl("useSeconAddress")
 		self._chardev.ioctl("clearReadBuf")
 		self._chardev.write(b'\x00' * 20)
 		prevTimeout = [0.1]
 		self._chardev.ioctl('getReadTimeout', prevTimeout)
 		self._chardev.ioctl('readTimeout', 0.01)
+		print("check target board 2")
 		try:
 			stmback = self._chardev.read(4)
 			self._chardev.ioctl('readTimeout', prevTimeout[0])

@@ -78,8 +78,9 @@ class CIapDev(object):
                 wb()
                 continue
             else:
+                print('finished')
                 break
-            print('finished')
+            
             sys.stdout.flush()
 
     @abstractmethod
@@ -138,7 +139,7 @@ class CIapDev(object):
         else:
             powerupval = [0, 2]
 
-        powerupval[0] = 0xaaaa5555
+        powerupval[0] = 0x5555aaaa
         xorresult = 0
         for i in range(0, suitvarnum):
             xorresult = xorresult ^ powerupval[i]
@@ -146,6 +147,10 @@ class CIapDev(object):
 
         self.loaduint32(xorresult, blockaddr + 4 * suitvarnum)
         print('restore boot parameters finished')
+
+    def setInLoadingBin(self, blockaddr):
+        powerupval = 0x66668888
+        self.loaduint32(powerupval, blockaddr)
 
     def getbootloaderversion(self):
         self._chardev.ioctl('useSeconAddress')
