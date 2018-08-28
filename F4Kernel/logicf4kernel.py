@@ -51,7 +51,7 @@ else:
     print('invalid arguments, example: logic.exe ./src1100_1.7.901_2018.sc.bin')
 
 BOOTLOADER_START_ADDR = 0x08000000
-BOOTPARAM_ADDR = 0x080FC000
+BOOTPARAM_ADDR = 0x0800C000
 APP_START_ADDR = 0x08020000
 chardev = UdpCharDev((F4K_ip, 15003), (F4K_ip, IAP_UDP_PORT))
 udpIapDev = CF4KernelIapDev(chardev)
