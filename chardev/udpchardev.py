@@ -2,6 +2,7 @@ import socket
 import os
 import sys
 from .chardev import CCharDev
+import time
 
 
 class UdpCharDev(CCharDev):
@@ -46,9 +47,10 @@ class UdpCharDev(CCharDev):
                     print('readtimeout, expect %d bytes, get %d bytes' %
                           (bufflen, len(self._dataQue)))
                     return b''
-                # except ConnectionResetError:
-                #     print('Connection was closed by remote host')
-                #     print('It\'s most likely that you use a SRC1100 firmware to flash SRC2000')
+                except ConnectionResetError:
+                    print('Connection was closed by remote host')
+
+
                 #     sys.exit(20)
 
     def ioctl(self, cmd, arg=0):

@@ -28,10 +28,10 @@ class CF4KernelIapDev(CIapDev):
 
 		QUERY_APP_VERSION_MSG = struct.pack(
 			'<2I', GET_APP_VERSION_CMD, 0xffffffff)
-		JUMP_TO_BL_MSG = struct.pack('<2I', SET_TO_BOOTLOADER_CMD, 0xFFFFFFFF)
+		JUMP_TO_BL_MSG = struct.pack('<2I', SET_TO_BOOTLOADER_CMD, 0xffffffff)
 
 		# confirm current firmware version
-		wb = whileBreaker(2)
+		ReadTimeoutCnt = 0
 		wbb = whileBreaker(3)
 		while True:
 			self._chardev.ioctl("usePrimeAddress")
@@ -41,8 +41,11 @@ class CF4KernelIapDev(CIapDev):
 
 			if(len(versionrawmsg) != backParamNum * 4):
 				print('invalid back message: %s' % versionrawmsg)
-				wb()
-				continue
+				if(ReadTimeoutCnt < 4):
+					ReadTimeoutCnt = ReadTimeoutCnt + 1
+					continue
+				else:
+					return 0x01
 
 			(head, v0, v1, v2) = struct.unpack('<4I', versionrawmsg)
 
@@ -54,13 +57,13 @@ class CF4KernelIapDev(CIapDev):
 			print('Get app version: %d.%d.%d' % (v0, v1, v2))
 
 			if(v0 > 1):
-				print('Version confirm ok!')
+				print('APP Version confirm ok!')
 				break
 			elif(v1 > 7):
-				print('Version confirm ok!')
+				print('APP Version confirm ok!')
 				break
 			elif(v2 >= 906):
-				print('Version confirm ok!')
+				print('APP Version confirm ok!')
 				break
 
 			print('App version do not support auto update, press enter to exit...')
@@ -69,23 +72,7 @@ class CF4KernelIapDev(CIapDev):
 
 		wb = whileBreaker(2)
 		wbb = whileBreaker(3)
-		while True:
-			self._chardev.write(JUMP_TO_BL_MSG)
-			backParamNum = 2
-			stmback = self._chardev.read(backParamNum * 4)
-			if(len(stmback) != backParamNum * 4):
-				print('invalid back message: %s' % stmback)
-				wb()
-				continue
-			(head, val) = struct.unpack('<2I', stmback)
-
-			if(head != SET_TO_BOOTLOADER_CMD):
-				print('pack head error: 0x%X' % head)
-				wbb()
-				continue
-
-			break
-
+		self._chardev.write(JUMP_TO_BL_MSG)
 		self._chardev.ioctl("useSeconAddress")
 		time.sleep(0.5)
 

@@ -156,6 +156,7 @@ class CIapDev(object):
         self._chardev.ioctl('useSeconAddress')
         print('read firmware version with second address')
         wb = chardev.whileBreaker(6)
+        timeOutCnt = 0
         while True:
             self.forwardwrite(CIapDev.byteGetFirmwareVersion)
             stmback = self._chardev.read(5)
@@ -163,7 +164,11 @@ class CIapDev(object):
                 # print('read timeout, maybe port unmatch, switch to primeAddress')
                 # self._chardev.ioctl('usePrimeAddress')
                 print('read timeout')
-                wb()
+                if(timeOutCnt < 4):
+                    timeOutCnt = timeOutCnt + 1
+                    continue
+                else:
+                    return 0x01
                 continue
             elif(stmback[0] != CIapDev.ACK[0]):
                 print('not ack', stmback)
@@ -187,7 +192,7 @@ class CIapDev(object):
         i = 0
         length = len(data)
         print('bin file length = %d' % length)
-        wb = chardev.whileBreaker(7, 50)
+        wb = chardev.whileBreaker(7, 20)
         while i < length:
             nowDownloadAddress = address + i
             print("write address 0x%X" % nowDownloadAddress)
