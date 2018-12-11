@@ -152,6 +152,10 @@ class CIapDev(object):
         powerupval = 0x66668888
         self.loaduint32(powerupval, blockaddr)
 
+    def setInBL(self, blockaddr):
+        powerupval = 0x2b2b6666
+        self.loaduint32(powerupval, blockaddr)
+
     def getbootloaderversion(self):
         self._chardev.ioctl('useSeconAddress')
         print('read firmware version with second address')
