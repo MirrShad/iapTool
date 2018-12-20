@@ -60,6 +60,7 @@ Base function test, including:
 2. readtest. Read code from target board and jump back to application layer.
 
 # F4Kernel
+compile cmd: pyinstaller -p ..\iapdev -p ..\chardev -F logicf4kernel.py
 
 # SeerGyro
 
