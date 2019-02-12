@@ -132,6 +132,8 @@ class CF4KernelIapDev(CIapDev):
 		QUERY_APP_VERSION_MSG = struct.pack(
 			'<2I', GET_APP_VERSION_CMD, 0xffffffff)
 
+		wb = whileBreaker(4)
+		wbb = whileBreaker(5)
 		# confirm current firmware version
 		while True:
 			self._chardev.ioctl("usePrimeAddress")
@@ -141,12 +143,14 @@ class CF4KernelIapDev(CIapDev):
 
 			if(len(versionrawmsg) != backParamNum * 4):
 				print('invalid back message: %s' % versionrawmsg)
+				wb()
 				continue
 
 			(head, v0, v1, v2) = struct.unpack('<4I', versionrawmsg)
 
 			if(head != GET_APP_VERSION_CMD):
 				print('pack head error: 0x%X' % head)
+				wbb()
 				continue
 
 			print('Get app version: %d.%d.%d' % (v0, v1, v2))
