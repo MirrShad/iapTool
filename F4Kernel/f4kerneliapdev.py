@@ -168,3 +168,39 @@ class CF4KernelIapDev(CIapDev):
 			print('App version do not support auto update, press enter to exit...')
 			input()
 			quit()
+
+class CheckWhichBox(object):
+
+    def __init__(self, chardevice):
+        self.__cd = chardevice
+        GET_APP_VERSION_CMD = 0x1032
+        self.QUERY_APP_VERSION_MSG = struct.pack('<2I', GET_APP_VERSION_CMD, 0xffffffff)
+        self.backParamNum = 5
+
+    def transferQueryData(self):
+        wb = whileBreaker(7,5)
+        while True:
+            self.__cd.write(self.QUERY_APP_VERSION_MSG)
+            self.versionrawmsg = self.__cd.read(self.backParamNum * 4)
+            if(len(self.versionrawmsg) != self.backParamNum * 4):
+                print('invalid back message: %s' % self.versionrawmsg)
+                wb()
+                continue
+            (self.head, self.v0, self.v1, self.v2, self.box) = struct.unpack('<5I', self.versionrawmsg)
+            break
+
+    def isSRC2000(self):
+        self.transferQueryData()
+        if(2 != int(chr(self.box))):
+            print('pack box error:',chr(self.box))
+            return False
+        else:
+            return True
+
+    def isSRC1100(self):
+        self.transferQueryData()
+        if(1 != int(chr(self.box))):
+            print('pack box error:' ,chr(self.box))
+            return False
+        else:
+            return True

@@ -7,7 +7,7 @@ import json
 from time import sleep
 from SeerGyro.seergyroiapdev import CSeerGyroIapDev
 from chardev.udpchardev import UdpCharDev
-from F4Kernel.f4kerneliapdev import CF4KernelIapDev
+from F4Kernel.f4kerneliapdev import CF4KernelIapDev, CheckWhichBox
 
 try:
     with open('..\\User\\ipconfig.json', 'r') as f:
@@ -18,12 +18,24 @@ try:
 except:
     F4K_ip = '192.168.192.4'
 
+chardev = UdpCharDev((F4K_ip, 15003), (F4K_ip, 15003))
+askwhichbox = CheckWhichBox(chardev)
+
 if(2 == len(sys.argv)):
     bin_file = sys.argv[1]
-    #*.gyro.bin
-    tail2 = bin_file[-7:-4]
-    if tail2 != '.gy':
-        print('not the firmware for seer controller, press enter to continue...')
+    #*.gyro.bin 
+    (tail2, tail) = bin_file.split('.')[-2:]
+    if(tail != 'bin'):
+        print('firmware should be *.bin, but current: ' + tail)
+        sleep(2)
+        sys.exit(1)
+
+    if (tail2 == 'gy2') and (askwhichbox.isSRC2000()):
+        print('box is SRC2000...')
+    elif (tail2 == 'gy') and (askwhichbox.isSRC1100()):
+        print('box is SRC1100...')
+    else:
+        print('not the firmware for seer gyro, press enter to continue...')
         sleep(2)
         sys.exit(1)
 else:
@@ -32,7 +44,6 @@ else:
 BOOTLOADER_START_ADDR = 0x08000000
 BOOTPARAM_ADDR = 0x0800FC00
 APP_START_ADDR = 0x08005800
-chardev = UdpCharDev((F4K_ip, 15003), (F4K_ip, 15003))
 
 udpF4KIapDev = CF4KernelIapDev(chardev)
 udpF4KIapDev.checkapplicationversion((1, 7, 906))
