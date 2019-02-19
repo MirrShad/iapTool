@@ -176,6 +176,7 @@ class CheckWhichBox(object):
         GET_APP_VERSION_CMD = 0x1032
         self.QUERY_APP_VERSION_MSG = struct.pack('<2I', GET_APP_VERSION_CMD, 0xffffffff)
         self.backParamNum = 5
+        self.is_old_version = False
 
     def transferQueryData(self):
         wb = whileBreaker(7,5)
@@ -183,7 +184,13 @@ class CheckWhichBox(object):
             self.__cd.write(self.QUERY_APP_VERSION_MSG)
             self.versionrawmsg = self.__cd.read(self.backParamNum * 4)
             if(len(self.versionrawmsg) != self.backParamNum * 4):
+                # compatible with old version
+                self.oldversionrawmsg = self.__cd.read(4 * 4)
+                if (len(self.oldversionrawmsg) == 16):   
+                    self.is_old_version = True
+                    break
                 print('invalid back message: %s' % self.versionrawmsg)
+                self.__cd.clearReadBuf()
                 wb()
                 continue
             (self.head, self.v0, self.v1, self.v2, self.box) = struct.unpack('<5I', self.versionrawmsg)
@@ -191,16 +198,24 @@ class CheckWhichBox(object):
 
     def isSRC2000(self):
         self.transferQueryData()
-        if(2 != int(chr(self.box))):
-            print('pack box error:',chr(self.box))
-            return False
-        else:
+        if(self.is_old_version):
+            print('old version, old logic...')
+            return True  
+        elif(2 == int(chr(self.box))):
             return True
+        else:
+            print('pack box error: 0x%X' % self.box)
+            return False
+            
 
     def isSRC1100(self):
         self.transferQueryData()
-        if(1 != int(chr(self.box))):
-            print('pack box error:' ,chr(self.box))
-            return False
-        else:
+        if(self.is_old_version):
+            print('old version, old logic...')
             return True
+        elif(1 == int(chr(self.box))):
+            return True 
+        else:
+            print('pack box error: 0x%X' % self.box)
+            return False
+            

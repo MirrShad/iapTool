@@ -31,9 +31,9 @@ if(2 == len(sys.argv)):
         sys.exit(1)
 
     if (tail2 == 'gy2') and (askwhichbox.isSRC2000()):
-        print('box is SRC2000...')
+        pass
     elif (tail2 == 'gy') and (askwhichbox.isSRC1100()):
-        print('box is SRC1100...')
+        pass
     else:
         print('not the firmware for seer gyro, press enter to continue...')
         sleep(2)
