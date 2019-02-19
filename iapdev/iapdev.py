@@ -168,7 +168,7 @@ class CIapDev(object):
                 # print('read timeout, maybe port unmatch, switch to primeAddress')
                 # self._chardev.ioctl('usePrimeAddress')
                 print('read timeout')
-                if(timeOutCnt < 4):
+                if(timeOutCnt < 8):
                     timeOutCnt = timeOutCnt + 1
                     continue
                 else:
